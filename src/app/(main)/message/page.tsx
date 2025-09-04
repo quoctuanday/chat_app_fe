@@ -2,10 +2,9 @@ import ChatList from '@/components/layout/ChatList';
 import ChatWindow from '@/components/layout/ChatWindow';
 import Sidebar from '@/components/layout/Sidebar';
 
-export default function HomePage() {
+export default function MessagePage() {
     return (
-        <div className="grid grid-cols-[240px_300px_1fr] min-h-screen bg-[var(--background)]">
-            <Sidebar className="bg-[var(--sidebar)] p-[20px]" />
+        <div className="grid grid-cols-[300px_1fr] min-h-screen bg-[var(--background)]">
             <ChatList className="border-2 border-[var(--secondary)]" />
             <ChatWindow />
         </div>

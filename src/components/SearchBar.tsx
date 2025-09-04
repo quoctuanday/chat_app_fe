@@ -4,7 +4,11 @@ import { FiSearch, FiX } from 'react-icons/fi';
 import { findUsers } from '@/api';
 import Image from 'next/image';
 
-export default function SearchBar() {
+interface SearchBarProps {
+    className?: string;
+}
+
+export default function SearchBar({ className }: SearchBarProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
@@ -43,7 +47,7 @@ export default function SearchBar() {
     }, []);
 
     return (
-        <div className="mb-6 relative" ref={wrapperRef}>
+        <div className={`${className} relative`} ref={wrapperRef}>
             <div className="relative">
                 <input
                     type="text"
@@ -51,9 +55,9 @@ export default function SearchBar() {
                     value={query}
                     onFocus={() => setIsOpen(true)}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="w-full bg-white/70 backdrop-blur-sm border border-mint-dark/30 rounded-2xl px-12 py-4 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all"
+                    className="w-full bg-white/70 backdrop-blur-sm border border-mint-dark/30 rounded-2xl px-8 py-2 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-transparent transition-all"
                 />
-                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
 
                 {query && (
                     <button

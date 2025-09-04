@@ -4,7 +4,7 @@ import React from 'react';
 import { Input, Form, FormProps, Button, message } from 'antd';
 import Link from 'next/link';
 import { FcGoogle } from 'react-icons/fc';
-import { login } from '@/api/index';
+import { getUser, login } from '@/api/index';
 import { useRouter } from 'next/navigation';
 import '@ant-design/v5-patch-for-react-19';
 
@@ -22,13 +22,16 @@ function LoginPage() {
                 const response = await login(values);
                 if (response) {
                     message.success('Đăng nhập thành công!');
-                    console.log(response.data.data.access_token);
                     localStorage.setItem(
                         'token',
                         response.data.data.access_token
                     );
+                    const profileRes = await getUser();
+                    const user = profileRes.data.data;
+
+                    localStorage.setItem('userLoginData', JSON.stringify(user));
                     setTimeout(() => {
-                        router.push('/');
+                        router.push('/message');
                     }, 2000);
                 }
             } catch (error: any) {
@@ -138,15 +141,6 @@ function LoginPage() {
                             className="text-blue-600 hover:underline"
                         >
                             Đăng ký ngay
-                        </Link>
-                    </p>
-
-                    <p className="text-center text-xs text-gray-500 mt-2">
-                        <Link
-                            href="/home"
-                            className="hover:underline text-blue-400"
-                        >
-                            Ghé thăm với tư cách khách
                         </Link>
                     </p>
                 </Form>

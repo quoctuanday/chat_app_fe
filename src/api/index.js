@@ -26,3 +26,13 @@ export const findUser = (data) => api.get(`/users/${data}`);
 export const findUsers = (params) => {
     return api.get(`/users`, { params });
 };
+
+export const addFriend = (friend_id) => {
+    return api.post('/users/add-friend', { friend_id });
+};
+
+export const acceptFriend = (friend_id) => {
+    return api.patch(`/users/accept-friend/${friend_id}`);
+};
+
+export const getListConversation = () => api.get(`/conversations`);
