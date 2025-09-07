@@ -16,7 +16,12 @@ interface UserContextProps {
     socket: Socket | null;
     joinConversation: (conversationId: string) => void;
     leaveConversation: (conversationId: string) => void;
-    sendMessage: (conversationId: string, content: string) => void;
+    sendMessage: (params: {
+        conversation_id: string;
+        content?: string;
+        reply_to_id?: string;
+        message_type?: 'text' | 'image' | 'file' | 'system';
+    }) => void;
 }
 
 // Create context with explicit type
@@ -80,12 +85,16 @@ export default function UserProvider({ children }: UserProviderProps) {
         socketRef.current?.emit('leaveConversation', { conversationId });
     };
 
-    const sendMessage = (conversationId: string, content: string) => {
+    const sendMessage = (params: {
+        conversation_id: string;
+        content?: string;
+        reply_to_id?: string;
+        message_type?: 'text' | 'image' | 'file' | 'system';
+    }) => {
         if (!userLoginData) return;
         socketRef.current?.emit('sendMessage', {
-            conversationId,
             senderId: userLoginData.user_id,
-            content,
+            ...params,
         });
     };
 

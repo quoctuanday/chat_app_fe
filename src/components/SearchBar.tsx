@@ -1,14 +1,16 @@
-'use client';
 import { useState, useEffect, useRef } from 'react';
 import { FiSearch, FiX } from 'react-icons/fi';
-import { findUsers } from '@/api';
+import { getListConversationByQuery } from '@/api';
+import { getInitials } from '@/helper/getInitials';
 import Image from 'next/image';
+import { useUser } from '@/store/socket';
 
 interface SearchBarProps {
     className?: string;
 }
 
 export default function SearchBar({ className }: SearchBarProps) {
+    const { userLoginData } = useUser();
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
@@ -22,7 +24,7 @@ export default function SearchBar({ className }: SearchBarProps) {
 
         const fetchData = async () => {
             try {
-                const res = await findUsers({ username: query });
+                const res = await getListConversationByQuery({ name: query });
                 setResults(res.data.data);
             } catch (error) {
                 console.error(error);
@@ -45,6 +47,23 @@ export default function SearchBar({ className }: SearchBarProps) {
         document.addEventListener('click', handler);
         return () => document.removeEventListener('click', handler);
     }, []);
+
+    const getConversationInfo = (item: any) => {
+        if (item.type === 'group') {
+            return {
+                name: item.name,
+                avatar: item.avatar_url,
+            };
+        } else {
+            const other = item.members.find(
+                (m: any) => m.user_id !== userLoginData?.user_id
+            );
+            return {
+                name: other?.username || 'Unknown',
+                avatar: other?.avatar_url,
+            };
+        }
+    };
 
     return (
         <div className={`${className} relative`} ref={wrapperRef}>
@@ -81,44 +100,46 @@ export default function SearchBar({ className }: SearchBarProps) {
                                     Tìm thấy {results.length} kết quả
                                 </div>
                                 <div className="space-y-2">
-                                    {results.map((item, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-center space-x-3 p-3 hover:bg-mint/40 rounded-xl cursor-pointer transition-colors"
-                                            onClick={() => {
-                                                alert(
-                                                    `Bạn chọn ${item.username}`
-                                                );
-                                                setIsOpen(false);
-                                                setQuery('');
-                                            }}
-                                        >
-                                            {item.avatar ? (
-                                                <Image
-                                                    src={item.avatar}
-                                                    width={100}
-                                                    height={100}
-                                                    alt={item.username}
-                                                    className="w-10 h-10 rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-10 h-10 bg-gradient-to-r from-teal-400 to-purple-400 rounded-full flex items-center justify-center text-white font-semibold">
-                                                    {item.username?.[0]?.toUpperCase() ||
-                                                        '?'}
-                                                </div>
-                                            )}
+                                    {results.map((item, i) => {
+                                        const { name, avatar } =
+                                            getConversationInfo(item);
+                                        return (
+                                            <div
+                                                key={i}
+                                                className="flex items-center space-x-3 p-3 hover:bg-mint/40 rounded-xl cursor-pointer transition-colors"
+                                                onClick={() => {
+                                                    alert(`Bạn chọn ${name}`);
+                                                    setIsOpen(false);
+                                                    setQuery('');
+                                                }}
+                                            >
+                                                {avatar ? (
+                                                    <Image
+                                                        src={avatar}
+                                                        width={100}
+                                                        height={100}
+                                                        alt={name}
+                                                        className="w-10 h-10 rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-gradient-to-r from-teal-400 to-purple-400 rounded-full flex items-center justify-center text-white font-semibold">
+                                                        {getInitials(name)}
+                                                    </div>
+                                                )}
 
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-medium text-gray-800 truncate">
-                                                    {item.username}
-                                                </h4>
-                                                <p className="text-gray-600 text-sm truncate">
-                                                    {item.email ||
-                                                        'Không có email'}
-                                                </p>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-medium text-gray-800 truncate">
+                                                        {name}
+                                                    </h4>
+                                                    <p className="text-gray-600 text-sm truncate">
+                                                        {item.type === 'group'
+                                                            ? 'Nhóm trò chuyện'
+                                                            : 'Cuộc trò chuyện riêng'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </>
                         )}

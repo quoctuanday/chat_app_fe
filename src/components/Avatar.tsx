@@ -8,6 +8,7 @@ interface AvatarProps {
     status?: 'online' | 'offline' | 'busy';
     w?: number; // width
     h?: number; // height
+    classname?: string;
 }
 
 function getInitials(name: string): string {
@@ -17,7 +18,7 @@ function getInitials(name: string): string {
         .filter(Boolean)
         .map((word) => word[0].toUpperCase())
         .join('')
-        .slice(0, 2); // Lấy tối đa 2 ký tự
+        .slice(0, 2);
 }
 
 export default function Avatar({
@@ -26,10 +27,11 @@ export default function Avatar({
     status,
     w = 50,
     h = 50,
+    classname,
 }: AvatarProps) {
     return (
         <div
-            className={`relative rounded-full bg-[var(--primary)] border flex items-center justify-center`}
+            className={`relative rounded-full bg-[var(--primary)]  flex items-center justify-center ${classname}`}
             style={{ width: w, height: h }}
         >
             {avatarUrl ? (

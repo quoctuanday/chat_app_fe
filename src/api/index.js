@@ -18,6 +18,7 @@ api.interceptors.request.use(
     }
 );
 
+//User
 export const login = (data) =>
     api.post('/auth/login', data, { withCredentials: true });
 export const getUser = () => api.get('/auth/profile');
@@ -35,4 +36,15 @@ export const acceptFriend = (friend_id) => {
     return api.patch(`/users/accept-friend/${friend_id}`);
 };
 
+//conversations
 export const getListConversation = () => api.get(`/conversations`);
+
+export const getListConversationByQuery = (params) => {
+    return api.get(`/conversations/search`, { params });
+};
+
+export const getConversationDetail = (id) => api.get(`/conversations/${id}`);
+
+//message
+export const getMessageList = (id) => api.get(`/message/${id}`);
+export const sendMessage = (data) => api.post('/message', data);

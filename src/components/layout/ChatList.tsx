@@ -1,33 +1,55 @@
 'use client';
-import { getListConversation } from '@/api';
+import { getListConversation, getListConversationByQuery } from '@/api';
 import Avatar from '@/components/Avatar';
 import SearchBar from '@/components/SearchBar';
+import { convertTime } from '@/helper/convertTime';
 import { Conversation } from '@/schema/Conversation';
 import { useUser } from '@/store/socket';
-import React, { useEffect, useState } from 'react';
+import React, { SetStateAction, useEffect, useState } from 'react';
 
 interface ChatListProps {
     className?: string;
+    setSelectedConversation: React.Dispatch<
+        React.SetStateAction<string | null>
+    >;
 }
 
-export default function Chatlist({ className }: ChatListProps) {
+export default function Chatlist({
+    className,
+    setSelectedConversation,
+}: ChatListProps) {
     const { userLoginData } = useUser();
-    const [messageType, setMessageType] = useState<'all' | 'unread'>('all');
+    const [messageType, setMessageType] = useState<'all' | 'group'>('all');
     const [conversations, setConversations] = useState<Conversation[] | null>(
         null
     );
 
     useEffect(() => {
         const getConservationList = async () => {
-            const response = await getListConversation();
-            if (response) {
-                const data = response.data.data;
-                console.log(data);
-                setConversations(data);
+            try {
+                let response;
+                if (messageType === 'all') {
+                    response = await getListConversation();
+                } else {
+                    response = await getListConversationByQuery({
+                        type: messageType,
+                    });
+                }
+
+                if (response) {
+                    const data = response.data.data;
+                    setConversations(data);
+                    if (data.length > 0) {
+                        setSelectedConversation(data[0].conversation_id);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
             }
         };
+
         getConservationList();
-    }, []);
+    }, [messageType]);
 
     const currentUserId = userLoginData?.user_id;
 
@@ -54,26 +76,29 @@ export default function Chatlist({ className }: ChatListProps) {
                 </div>
                 <div
                     className="w-1/2 text-center py-1 rounded-[10px] cursor-pointer relative z-10 select-none"
-                    onClick={() => setMessageType('unread')}
+                    onClick={() => setMessageType('group')}
                 >
-                    Chưa đọc
+                    Nhóm
                 </div>
             </div>
 
             <SearchBar className="mt-[20px]" />
 
-            <div className="mt-[20px] space-y-2">
+            <div className="mt-[20px]">
                 {conversations?.map((conversation, index) => {
                     let displayName = '';
                     let lastMessage = '';
                     let avatarUrl: string | undefined;
                     let status: 'online' | 'offline' | 'busy' | undefined;
+                    const lastTime = convertTime(
+                        conversation.lastMessage?.created_at || ''
+                    );
 
                     if (conversation.type === 'private') {
                         const other = conversation.members?.find(
                             (m) => m.user_id !== currentUserId
                         );
-
+                        lastMessage = conversation.lastMessage?.content || '';
                         displayName = other?.username || 'Unknown';
                         avatarUrl = other?.avatar_url || undefined;
                         status = undefined;
@@ -86,8 +111,13 @@ export default function Chatlist({ className }: ChatListProps) {
 
                     return (
                         <div
-                            className="h-[60px] flex items-center bg-[var(--gray)] rounded-[10px] px-3 gap-3 cursor-pointer hover:bg-[var(--secondary)] transition-colors"
+                            className="h-[60px] flex items-center  rounded-[10px] px-3 gap-3 cursor-pointer hover:bg-[var(--secondary)] transition-colors"
                             key={index}
+                            onClick={() =>
+                                setSelectedConversation(
+                                    conversation.conversation_id
+                                )
+                            }
                         >
                             <Avatar
                                 w={50}
@@ -95,12 +125,18 @@ export default function Chatlist({ className }: ChatListProps) {
                                 username={displayName}
                                 avatarUrl={avatarUrl}
                                 status={status}
+                                classname="flex-shrink-0"
                             />
-                            <div className="flex flex-col">
-                                <span className="font-semibold">
-                                    {displayName}
-                                </span>
-                                <span className="text-sm text-gray-500">
+                            <div className="flex flex-col w-full">
+                                <div className="flex items-center justify-between ">
+                                    <span className="font-semibold">
+                                        {displayName}
+                                    </span>
+                                    <span className="text-gray-500 text-[10px]">
+                                        {lastTime}
+                                    </span>
+                                </div>
+                                <span className="text-sm text-gray-500 line-clamp-1">
                                     {lastMessage}
                                 </span>
                             </div>
