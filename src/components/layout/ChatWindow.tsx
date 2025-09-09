@@ -10,6 +10,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaInfoCircle, FaPhoneAlt } from 'react-icons/fa';
 import { IoIosSend } from 'react-icons/io';
 import { IoVideocam } from 'react-icons/io5';
+import CallWaiting from '@/components/CallWaiting';
+import IncomingCallModal from '@/components/IncomingCallModal';
+import VideoCallModal from '@/components/VideoCallModal';
+import { useWebRTC } from '@/hooks/useWebRTC';
 
 interface ChatWindowProps {
     className?: string;
@@ -20,7 +24,14 @@ export default function ChatWindow({
     className,
     conversationId,
 }: ChatWindowProps) {
-    const { userLoginData, socket, sendMessage } = useUser();
+    const {
+        userLoginData,
+        callUser,
+        acceptCall,
+        rejectCall,
+        socket,
+        sendMessage,
+    } = useUser();
     const [conversationDetail, setConversationDetail] =
         useState<Conversation | null>(null);
     const [messages, setMessage] = useState<Message[] | null>(null);
@@ -30,6 +41,19 @@ export default function ChatWindow({
     );
     const [replyId, setReplyId] = useState<string | null>(null);
     const messageInputRef = useRef<HTMLInputElement>(null);
+
+    //Call event states
+    const { localStream, remoteStream, startCall, endCall } = useWebRTC();
+
+    const [showWaiting, setShowWaiting] = useState(false);
+    const [incomingCall, setIncomingCall] = useState<{
+        from: string;
+        conversationId: string;
+        username: string;
+        avatarUrl: string | null;
+    } | null>(null);
+
+    const [inCall, setInCall] = useState(false);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -87,6 +111,41 @@ export default function ChatWindow({
         messageInputRef.current.value = '';
     };
 
+    //call event tracking
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('incomingCall', (data) => setIncomingCall(data));
+
+        socket.on('callAccepted', ({ from }) => {
+            setShowWaiting(false);
+            setInCall(true);
+            startCall(from);
+        });
+
+        socket.on('callRejected', () => {
+            setShowWaiting(false);
+            alert('📵 Đối phương đã từ chối cuộc gọi!');
+        });
+
+        return () => {
+            socket.off('incomingCall');
+            socket.off('callAccepted');
+            socket.off('callRejected');
+        };
+    }, [socket]);
+
+    const handleVideoCall = () => {
+        const other = conversationDetail?.members?.find(
+            (m) => m.user_id !== userLoginData?.user_id
+        );
+        if (!other) return;
+
+        callUser(other.user_id, conversationDetail!.conversation_id);
+        setShowWaiting(true);
+    };
+
+    //initial constant
     if (!conversationDetail) {
         return;
     }
@@ -125,7 +184,10 @@ export default function ChatWindow({
                     <i className="text-[1.25rem] text-[var(--primary)] cursor-pointer p-2 rounded-full hover:bg-[#f0f0f0]">
                         <FaPhoneAlt />
                     </i>
-                    <i className="text-[1.25rem] ml-2 text-[var(--primary)] cursor-pointer p-2 rounded-full hover:bg-[#f0f0f0]">
+                    <i
+                        onClick={handleVideoCall}
+                        className="text-[1.25rem] ml-2 text-[var(--primary)] cursor-pointer p-2 rounded-full hover:bg-[#f0f0f0]"
+                    >
                         <IoVideocam />
                     </i>
                     <i className="text-[1.25rem] ml-2 text-[var(--primary)] cursor-pointer p-2 rounded-full hover:bg-[#f0f0f0]">
@@ -133,6 +195,42 @@ export default function ChatWindow({
                     </i>
                 </div>
             </div>
+            {showWaiting && (
+                <CallWaiting
+                    calleeName={displayName}
+                    onCancel={() => {
+                        setShowWaiting(false);
+                        endCall();
+                    }}
+                />
+            )}
+
+            {incomingCall && (
+                <IncomingCallModal
+                    callerName={incomingCall.username}
+                    avatar_url={incomingCall.avatarUrl}
+                    onAccept={() => {
+                        acceptCall(incomingCall.from);
+                        setIncomingCall(null);
+                        setInCall(true);
+                    }}
+                    onDecline={() => {
+                        rejectCall(incomingCall.from);
+                        setIncomingCall(null);
+                    }}
+                />
+            )}
+
+            {inCall && (
+                <VideoCallModal
+                    localStream={localStream}
+                    remoteStream={remoteStream}
+                    onEndCall={() => {
+                        endCall();
+                        setInCall(false);
+                    }}
+                />
+            )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages?.map((msg, idx) => {
