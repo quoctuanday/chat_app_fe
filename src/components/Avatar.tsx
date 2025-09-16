@@ -35,13 +35,17 @@ export default function Avatar({
             style={{ width: w, height: h }}
         >
             {avatarUrl ? (
-                <Image
-                    src={avatarUrl}
-                    alt={`Avatar of ${username}`}
-                    width={w}
-                    height={h}
-                    className="rounded-full object-cover"
-                />
+                <div
+                    className="relative rounded-full overflow-hidden"
+                    style={{ width: w, height: h }}
+                >
+                    <Image
+                        src={avatarUrl}
+                        alt={`Avatar of ${username}`}
+                        fill
+                        className="object-cover"
+                    />
+                </div>
             ) : (
                 <span
                     className="text-white font-semibold"

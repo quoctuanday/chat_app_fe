@@ -28,6 +28,10 @@ export const findUsers = (params) => {
     return api.get(`/users`, { params });
 };
 
+export const updateUser = (data) => {
+    return api.patch('/users/update', data);
+};
+
 export const addFriend = (friend_id) => {
     return api.post('/users/add-friend', { friend_id });
 };

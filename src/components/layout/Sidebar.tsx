@@ -2,18 +2,50 @@
 import { useUser } from '@/store/socket';
 import Image from 'next/image';
 import { getInitials } from '@/helper/getInitials';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaUserFriends } from 'react-icons/fa';
 import { IoMdNotifications } from 'react-icons/io';
-import { MdOutlineMessage } from 'react-icons/md';
+import { MdKeyboardArrowRight, MdOutlineMessage } from 'react-icons/md';
 import { RiPencilFill } from 'react-icons/ri';
 import { CiLogout } from 'react-icons/ci';
+import { updateUser } from '@/api';
+import { useRouter } from 'next/navigation';
 interface SidebarProps {
     className?: string;
 }
 export default function Sidebar({ className }: SidebarProps) {
-    const { userLoginData } = useUser();
+    const router = useRouter();
+    const { userLoginData, setUserLoginData } = useUser();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [changeStatus, setChangeStatus] = useState(false);
+    const [status, setStatus] = useState<'online' | 'offline' | 'busy' | null>(
+        null
+    );
+
+    useEffect(() => {
+        if (status !== null && userLoginData) {
+            const updateStatus = async () => {
+                try {
+                    await updateUser({ status });
+                    const updatedUser = { ...userLoginData, status };
+                    setUserLoginData(updatedUser);
+                    localStorage.setItem(
+                        'userLoginData',
+                        JSON.stringify(updatedUser)
+                    );
+                } catch (error) {
+                    console.error('Update status failed:', error);
+                }
+            };
+
+            updateStatus();
+        }
+    }, [status]);
+
+    const handleLogOut = () => {
+        localStorage.clear();
+        router.push('./login');
+    };
     return (
         <div
             className={`${className} flex flex-col justify-between text-white`}
@@ -60,7 +92,7 @@ export default function Sidebar({ className }: SidebarProps) {
             >
                 {isModalOpen && (
                     <div
-                        className="absolute w-[250px] shadow-sm   bg-white bottom-[calc(100%+2%)] rounded-[5px] left-0 "
+                        className="absolute w-[250px] shadow-sm z-10  bg-[var(--background)] bottom-[calc(100%+2%)] rounded-[5px] left-0 "
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="h-[100px] bg-[var(--secondary)] rounded-t-[5px] relative">
@@ -69,8 +101,7 @@ export default function Sidebar({ className }: SidebarProps) {
                                     <Image
                                         src={userLoginData.avatar_url}
                                         alt="Avatar user"
-                                        width={80}
-                                        height={80}
+                                        fill
                                         className="rounded-full object-cover"
                                     />
                                 ) : (
@@ -95,41 +126,104 @@ export default function Sidebar({ className }: SidebarProps) {
                             <h1 className="font-bold text-[20px]">
                                 {userLoginData?.username}
                             </h1>
-                            <ul className="mt-[5px] px-3 rounded-[5px] bg-[var(--secondary)] min-h-[40px]">
+                            <ul className="mt-[5px] px-3 rounded-[5px] bg-[var(--secondary)] min-h-[40px] relative ">
                                 <div className="py-2">
-                                    <li className=" py-1 px-1 flex items-center hover:bg-[#e7e3e3] rounded-[5px]">
+                                    <a
+                                        href="/profile"
+                                        className=" py-1 px-1 flex items-center hover:bg-[#e7e3e3] rounded-[5px]"
+                                    >
                                         <i>
                                             <RiPencilFill />
                                         </i>
                                         <span className="ml-2 text-[16px]">
                                             Chỉnh sửa hồ sơ
                                         </span>
-                                    </li>
+                                    </a>
                                 </div>
-                                <div className="py-2 border-t">
-                                    <li className=" py-1 px-1 flex items-center  hover:bg-[#e7e3e3] rounded-[5px]">
-                                        <div
-                                            className={` w-4 h-4 rounded-full ${
-                                                userLoginData?.status ===
-                                                'online'
-                                                    ? 'bg-[var(--online)]'
-                                                    : 'bg-[var(--offline)]'
-                                            }`}
-                                        ></div>{' '}
-                                        <span className="text-[16px] ml-2">
-                                            {userLoginData?.status ===
-                                                'online' && 'Đang hoạt động'}
-                                            {userLoginData?.status ===
-                                                'offline' && 'Vô hình'}
-                                            {userLoginData?.status === 'busy' &&
-                                                'Đang bận'}
-                                        </span>
+                                <div className="py-2 border-t ">
+                                    {changeStatus && (
+                                        <div className="absolute left-[103%] top-[20%] w-[13rem] z-11 p-[0.5rem] bg-[var(--background)] border-[1px] border-[#e7e5e5] shadow-sm rounded-[5px] ">
+                                            <div className="flex items-center hover:bg-[#e7e3e3] rounded-[5px] p-1">
+                                                <div
+                                                    className={` w-4 h-4 rounded-full ${
+                                                        userLoginData?.status ===
+                                                        'online'
+                                                            ? 'bg-[var(--online)]'
+                                                            : 'bg-[var(--offline)]'
+                                                    }`}
+                                                ></div>{' '}
+                                                <span className="text-[16px] ml-2">
+                                                    {userLoginData?.status ===
+                                                        'online' &&
+                                                        'Đang hoạt động'}
+                                                    {userLoginData?.status ===
+                                                        'offline' && 'offline'}
+                                                    {userLoginData?.status ===
+                                                        'busy' && 'Vô hình'}
+                                                </span>
+                                            </div>
+                                            <div className="h-[1px] bg-[#f8f8f8] my-2"></div>
+                                            <div
+                                                onClick={() => {
+                                                    setStatus('online');
+                                                }}
+                                                className="flex items-center hover:bg-[#e7e3e3] rounded-[5px] p-1"
+                                            >
+                                                <div className=" w-4 h-4 rounded-ful bg-[var(--online)] rounded-full"></div>{' '}
+                                                <span className="text-[16px] ml-2">
+                                                    Đang hoạt động
+                                                </span>
+                                            </div>
+                                            <div
+                                                onClick={() => {
+                                                    setStatus('busy');
+                                                }}
+                                                className="flex items-center hover:bg-[#e7e3e3] rounded-[5px] p-1"
+                                            >
+                                                <div className=" w-4 h-4 rounded-ful bg-[var(--offline)] rounded-full"></div>{' '}
+                                                <span className="text-[16px] ml-2">
+                                                    Vô hình
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <li
+                                        onClick={() => {
+                                            setChangeStatus(!changeStatus);
+                                        }}
+                                        className=" py-1 px-1 flex items-center justify-between hover:bg-[#e7e3e3] rounded-[5px]"
+                                    >
+                                        <div className="flex items-center">
+                                            <div
+                                                className={` w-4 h-4 rounded-full ${
+                                                    userLoginData?.status ===
+                                                    'online'
+                                                        ? 'bg-[var(--online)]'
+                                                        : 'bg-[var(--offline)]'
+                                                }`}
+                                            ></div>{' '}
+                                            <span className="text-[16px] ml-2">
+                                                {userLoginData?.status ===
+                                                    'online' &&
+                                                    'Đang hoạt động'}
+                                                {userLoginData?.status ===
+                                                    'offline' &&
+                                                    'Chưa hoạt động'}
+                                                {userLoginData?.status ===
+                                                    'busy' && 'Vô hình'}
+                                            </span>
+                                        </div>
+
+                                        <MdKeyboardArrowRight />
                                     </li>
                                 </div>
                             </ul>
                             <ul className="mt-[5px] px-3 rounded-[5px] bg-[var(--secondary)] min-h-[40px]">
                                 <div className="py-2">
-                                    <li className=" py-1 px-1 flex items-center hover:bg-[#e7e3e3] rounded-[5px]">
+                                    <li
+                                        onClick={handleLogOut}
+                                        className=" py-1 px-1 flex items-center hover:bg-[#e7e3e3] rounded-[5px]"
+                                    >
                                         <i>
                                             <CiLogout />
                                         </i>
@@ -148,8 +242,7 @@ export default function Sidebar({ className }: SidebarProps) {
                         <Image
                             src={userLoginData.avatar_url}
                             alt="Avatar user"
-                            width={50}
-                            height={50}
+                            fill
                             className="rounded-full object-cover"
                         />
                     ) : (
