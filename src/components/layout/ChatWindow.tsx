@@ -7,7 +7,7 @@ import { Message } from '@/schema/Message';
 import { useUser } from '@/store/socket';
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { FaInfoCircle, FaPhoneAlt } from 'react-icons/fa';
+import { FaArrowDown, FaInfoCircle, FaPhoneAlt } from 'react-icons/fa';
 import { IoIosSend } from 'react-icons/io';
 import { IoVideocam } from 'react-icons/io5';
 import CallWaiting from '@/components/CallWaiting';
@@ -41,6 +41,17 @@ export default function ChatWindow({
     );
     const [replyId, setReplyId] = useState<string | null>(null);
     const messageInputRef = useRef<HTMLInputElement>(null);
+
+    const [showScrollDown, setShowScrollDown] = useState(false);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        setShowScrollDown(scrollHeight - scrollTop - clientHeight > 100);
+    };
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     //Call event states
     const { localStream, remoteStream, startCall, endCall } = useWebRTC();
@@ -79,9 +90,12 @@ export default function ChatWindow({
 
     //socket new message
     useEffect(() => {
-        if (!conversationId || !socket) return;
+        if (!conversationId || !socket || !userLoginData) return;
 
-        socket.emit('joinConversation', { conversationId });
+        socket.emit('joinConversation', {
+            conversationId,
+            userId: userLoginData.user_id,
+        });
 
         const handleNewMessage = (msg: Message) => {
             if (msg.conversation_id === conversationId) {
@@ -95,7 +109,7 @@ export default function ChatWindow({
             socket.emit('leaveConversation', { conversationId });
             socket.off('newMessage', handleNewMessage);
         };
-    }, [conversationId, socket]);
+    }, [conversationId, socket, userLoginData?.user_id]);
 
     //senddMessage
     const handleSendMessage = async () => {
@@ -125,7 +139,7 @@ export default function ChatWindow({
 
         socket.on('callRejected', () => {
             setShowWaiting(false);
-            alert('📵 Đối phương đã từ chối cuộc gọi!');
+            alert('Đối phương đã từ chối cuộc gọi!');
         });
 
         return () => {
@@ -167,7 +181,9 @@ export default function ChatWindow({
     }
 
     return (
-        <div className={`${className} h-[100vh] overflow-hidden flex flex-col`}>
+        <div
+            className={`${className} h-[100vh] relative overflow-hidden flex flex-col`}
+        >
             <div className="flex px-[2rem] items-center justify-between border-b-[2px] border-[var(--secondary)] h-[5rem] w-full">
                 <div className="flex items-center">
                     <Avatar
@@ -232,7 +248,10 @@ export default function ChatWindow({
                 />
             )}
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div
+                className="flex-1 overflow-y-auto p-4 space-y-3 relative"
+                onScroll={handleScroll}
+            >
                 {messages?.map((msg, idx) => {
                     const isOwn = msg.sender_id === userLoginData?.user_id;
                     const showAvatar =
@@ -302,6 +321,16 @@ export default function ChatWindow({
 
                 <div ref={messagesEndRef} />
             </div>
+            {showScrollDown && (
+                <button
+                    onClick={scrollToBottom}
+                    className="absolute bottom-[13%] left-[50%] -translate-x-1/2 bg-[var(--primary)] text-white p-3 rounded-full shadow-lg hover:bg-opacity-90"
+                >
+                    <i>
+                        <FaArrowDown />
+                    </i>
+                </button>
+            )}
 
             <div className=" h-[4rem] border-t-[2px] border-[var(--secondary)] flex items-center px-4">
                 <input

@@ -2,6 +2,7 @@
 
 import { updateUser } from '@/api';
 import Avatar from '@/components/Avatar';
+import ImagePreview from '@/components/ImagePreview';
 import { uploadImage } from '@/helper/uploadImage';
 import { User } from '@/schema/User';
 import { useUser } from '@/store/socket';
@@ -17,6 +18,7 @@ function ProfilePage() {
     const { userLoginData, setUserLoginData } = useUser();
     const [chooseForm, setchooseForm] = useState(false);
     const [uploadForm, setUpLoadForm] = useState(false);
+    const [previewImage, setPreviewImage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -126,6 +128,12 @@ function ProfilePage() {
                     </div>
                 </div>
             )}
+            {previewImage && (
+                <ImagePreview
+                    src={userLoginData?.avatar_url || ''}
+                    setClosePreview={setPreviewImage}
+                />
+            )}
 
             <div className="relative h-[16rem] bg-[var(--secondary)]">
                 <div
@@ -138,7 +146,7 @@ function ProfilePage() {
                             avatarUrl={userLoginData?.avatar_url}
                             w={168}
                             h={168}
-                            classname=" bg-op rounded-full"
+                            classname=" bg-op rounded-full select-none"
                         />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
@@ -151,7 +159,10 @@ function ProfilePage() {
                             onClick={(e) => e.stopPropagation()}
                             className="absolute left-1/2 -translate-x-1/2 w-[13rem] rounded-[5px] p-2 shadow-sm font-medium"
                         >
-                            <li className="list-none flex items-center hover:bg-[#e7e3e3] p-2 rounded-[5px]">
+                            <li
+                                onClick={() => setPreviewImage(true)}
+                                className="list-none flex items-center hover:bg-[#e7e3e3] p-2 rounded-[5px]"
+                            >
                                 <LuSquareUser />
                                 <span className="ml-2">Xem ảnh đại diện</span>
                             </li>

@@ -18,7 +18,7 @@ export default function Chatlist({
     className,
     setSelectedConversation,
 }: ChatListProps) {
-    const { userLoginData } = useUser();
+    const { userLoginData, socket } = useUser();
     const [messageType, setMessageType] = useState<'all' | 'group'>('all');
     const [conversations, setConversations] = useState<Conversation[] | null>(
         null
@@ -38,6 +38,16 @@ export default function Chatlist({
 
                 if (response) {
                     const data = response.data.data;
+                    console.log(data);
+                    data.sort((a: Conversation, b: Conversation) => {
+                        const timeA = new Date(
+                            a.lastMessage?.created_at || 0
+                        ).getTime();
+                        const timeB = new Date(
+                            b.lastMessage?.created_at || 0
+                        ).getTime();
+                        return timeB - timeA;
+                    });
                     setConversations(data);
                     if (data.length > 0) {
                         setSelectedConversation(data[0].conversation_id);
@@ -50,6 +60,60 @@ export default function Chatlist({
 
         getConservationList();
     }, [messageType]);
+
+    useEffect(() => {
+        if (!socket || !conversations) return;
+        conversations.forEach((conv) => {
+            socket.emit('joinConversation', {
+                conversationId: conv.conversation_id,
+            });
+        });
+
+        const handleNewMessage = (msg: any) => {
+            setConversations((prev) => {
+                if (!prev) return prev;
+
+                const updated = prev.map((conv) =>
+                    conv.conversation_id === msg.conversation_id
+                        ? { ...conv, lastMessage: msg }
+                        : conv
+                );
+
+                const exists = updated.some(
+                    (conv) => conv.conversation_id === msg.conversation_id
+                );
+                if (!exists) {
+                    updated.unshift({
+                        conversation_id: msg.conversation_id,
+                        type: 'private',
+                        members: [],
+                        lastMessage: msg,
+                        name: 'Unknown',
+                        unreadCount: 1,
+                        initials: '',
+                    } as Conversation);
+                }
+
+                updated.sort((a, b) => {
+                    const timeA = new Date(
+                        a.lastMessage?.created_at || 0
+                    ).getTime();
+                    const timeB = new Date(
+                        b.lastMessage?.created_at || 0
+                    ).getTime();
+                    return timeB - timeA;
+                });
+
+                return updated;
+            });
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newMessage', handleNewMessage);
+        };
+    }, [socket, conversations]);
 
     const currentUserId = userLoginData?.user_id;
 

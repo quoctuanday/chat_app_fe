@@ -9,7 +9,7 @@ export interface Conversation {
     type: ConversationType;
     avatar_url?: string;
     name?: string;
-    created_at: string;
+    created_at?: string;
     created_by?: User;
     created_by_id?: string;
     members?: ConversationMember[];
